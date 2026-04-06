@@ -10,6 +10,7 @@ class AppSettings:
     use_24h: bool = True
     show_seconds: bool = True
     grid_view: bool = True
+    float_opacity: float = 0.88
 
     def save(self) -> None:
         _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)

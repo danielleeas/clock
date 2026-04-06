@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
         self._load_clocks()
         self._start_timer()
         self._apply_settings_to_ui()
+        self._init_floating_clock()
 
         # Keyboard shortcut: Ctrl+N → add clock
         QShortcut(QKeySequence("Ctrl+N"), self).activated.connect(self._add_clock)
@@ -55,10 +56,12 @@ class MainWindow(QMainWindow):
         self._btn_24h = self._tool_btn("24h", checkable=True, tooltip="Toggle 12/24-hour format")
         self._btn_secs = self._tool_btn("Seconds", checkable=True, tooltip="Show/hide seconds")
         self._btn_view = self._tool_btn("List", checkable=True, tooltip="Toggle list / grid view")
+        self._btn_float = self._tool_btn("Float", checkable=True, tooltip="Show/hide floating clock overlay")
 
         self._btn_24h.clicked.connect(self._toggle_24h)
         self._btn_secs.clicked.connect(self._toggle_seconds)
         self._btn_view.clicked.connect(self._toggle_view)
+        self._btn_float.clicked.connect(self._toggle_float)
 
         add_btn = QPushButton("＋  Add Clock")
         add_btn.setObjectName("AddBtn")
@@ -70,6 +73,7 @@ class MainWindow(QMainWindow):
         tb.addWidget(self._btn_24h)
         tb.addWidget(self._btn_secs)
         tb.addWidget(self._btn_view)
+        tb.addWidget(self._btn_float)
         tb.addSpacing(8)
         tb.addWidget(add_btn)
 
@@ -118,17 +122,16 @@ class MainWindow(QMainWindow):
     # ── Settings toggles ──────────────────────────────────────────────────────
 
     def _apply_settings_to_ui(self):
-        self._btn_24h.blockSignals(True)
-        self._btn_secs.blockSignals(True)
-        self._btn_view.blockSignals(True)
+        for btn in (self._btn_24h, self._btn_secs, self._btn_view, self._btn_float):
+            btn.blockSignals(True)
 
         self._btn_24h.setChecked(self.settings.use_24h)
         self._btn_secs.setChecked(self.settings.show_seconds)
         self._btn_view.setChecked(not self.settings.grid_view)
+        self._btn_float.setChecked(False)
 
-        self._btn_24h.blockSignals(False)
-        self._btn_secs.blockSignals(False)
-        self._btn_view.blockSignals(False)
+        for btn in (self._btn_24h, self._btn_secs, self._btn_view, self._btn_float):
+            btn.blockSignals(False)
 
         self._container.set_format(self.settings.use_24h, self.settings.show_seconds)
         self._container.set_list_mode(not self.settings.grid_view)
@@ -138,17 +141,34 @@ class MainWindow(QMainWindow):
         self.settings.save()
         self._container.set_format(self.settings.use_24h, self.settings.show_seconds)
         self._container.tick_all()
+        self._float_clock.update_format(self.settings.use_24h, self.settings.show_seconds)
 
     def _toggle_seconds(self, checked: bool):
         self.settings.show_seconds = checked
         self.settings.save()
         self._container.set_format(self.settings.use_24h, self.settings.show_seconds)
         self._container.tick_all()
+        self._float_clock.update_format(self.settings.use_24h, self.settings.show_seconds)
 
     def _toggle_view(self, checked: bool):
         self.settings.grid_view = not checked
         self.settings.save()
         self._container.set_list_mode(not self.settings.grid_view)
+
+    # ── Floating clock ────────────────────────────────────────────────────────
+
+    def _init_floating_clock(self):
+        from ui.floating_clock import FloatingClock
+        self._float_clock = FloatingClock()
+        self._float_clock.position_top_right()
+
+    def _toggle_float(self, checked: bool):
+        if checked:
+            self._float_clock.refresh_clocks()
+            self._float_clock.position_top_right()
+            self._float_clock.show()
+        else:
+            self._float_clock.hide()
 
     # ── Add clock ─────────────────────────────────────────────────────────────
 
@@ -166,6 +186,8 @@ class MainWindow(QMainWindow):
                 return
             card = self._container.add_card(label, tz_id)
             card.tick()
+            if self._btn_float.isChecked():
+                self._float_clock.refresh_clocks()
 
     # ── Window close → hide to tray ───────────────────────────────────────────
 
