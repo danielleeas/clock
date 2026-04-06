@@ -173,8 +173,8 @@ class FloatingClock(QWidget):
         self._body = QWidget()
         self._body.setStyleSheet("background: transparent;")
         self._body_layout = QVBoxLayout(self._body)
-        self._body_layout.setContentsMargins(16, 6, 16, 14)
-        self._body_layout.setSpacing(10)
+        self._body_layout.setContentsMargins(12, 2, 12, 8)
+        self._body_layout.setSpacing(3)
 
         outer.addWidget(title_bar)
         outer.addWidget(self._body)
