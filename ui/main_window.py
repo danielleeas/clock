@@ -58,13 +58,17 @@ class MainWindow(QMainWindow):
         self._btn_view = self._tool_btn("List", checkable=True, tooltip="Toggle list / grid view")
         self._btn_float = self._tool_btn("Float", checkable=True, tooltip="Show/hide floating clock overlay")
         self._btn_float_opacity = self._tool_btn("◑", tooltip="Adjust floating clock transparency")
+        self._btn_float_lock = self._tool_btn("🔒", checkable=True, tooltip="Locked: click-through  /  Unlocked: drag to move")
         self._btn_float_opacity.setVisible(False)
+        self._btn_float_lock.setVisible(False)
+        self._btn_float_lock.setChecked(True)  # locked (click-through) by default
 
         self._btn_24h.clicked.connect(self._toggle_24h)
         self._btn_secs.clicked.connect(self._toggle_seconds)
         self._btn_view.clicked.connect(self._toggle_view)
         self._btn_float.clicked.connect(self._toggle_float)
         self._btn_float_opacity.clicked.connect(self._open_float_opacity)
+        self._btn_float_lock.clicked.connect(self._toggle_float_lock)
 
         add_btn = QPushButton("＋  Add Clock")
         add_btn.setObjectName("AddBtn")
@@ -78,6 +82,7 @@ class MainWindow(QMainWindow):
         tb.addWidget(self._btn_view)
         tb.addWidget(self._btn_float)
         tb.addWidget(self._btn_float_opacity)
+        tb.addWidget(self._btn_float_lock)
         tb.addSpacing(8)
         tb.addWidget(add_btn)
 
@@ -126,15 +131,16 @@ class MainWindow(QMainWindow):
     # ── Settings toggles ──────────────────────────────────────────────────────
 
     def _apply_settings_to_ui(self):
-        for btn in (self._btn_24h, self._btn_secs, self._btn_view, self._btn_float):
+        for btn in (self._btn_24h, self._btn_secs, self._btn_view, self._btn_float, self._btn_float_lock):
             btn.blockSignals(True)
 
         self._btn_24h.setChecked(self.settings.use_24h)
         self._btn_secs.setChecked(self.settings.show_seconds)
         self._btn_view.setChecked(not self.settings.grid_view)
         self._btn_float.setChecked(False)
+        self._btn_float_lock.setChecked(True)
 
-        for btn in (self._btn_24h, self._btn_secs, self._btn_view, self._btn_float):
+        for btn in (self._btn_24h, self._btn_secs, self._btn_view, self._btn_float, self._btn_float_lock):
             btn.blockSignals(False)
 
         self._container.set_format(self.settings.use_24h, self.settings.show_seconds)
@@ -174,6 +180,12 @@ class MainWindow(QMainWindow):
         else:
             self._float_clock.hide()
         self._btn_float_opacity.setVisible(checked)
+        self._btn_float_lock.setVisible(checked)
+
+    def _toggle_float_lock(self, checked: bool):
+        # checked=True → locked (click-through), checked=False → unlocked (draggable)
+        self._btn_float_lock.setText("🔒" if checked else "🔓")
+        self._float_clock.set_locked(checked)
 
     def _open_float_opacity(self):
         """Open a small opacity slider dialog for the floating clock."""

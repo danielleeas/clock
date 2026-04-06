@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QSlider, QDialog, QPushButton, QApplication
 )
-from PySide6.QtCore import Qt, QTimer, QDateTime, QTimeZone, Signal
+from PySide6.QtCore import Qt, QTimer, QDateTime, QTimeZone, QPoint, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QBrush, QFont
 
 from app.persistence import load_clocks
@@ -119,6 +119,9 @@ class FloatingClock(QWidget):
         self._clocks: list[dict] = []
         self._tzones: list[QTimeZone] = []
         self._rows: list[tuple[QLabel, QLabel]] = []  # (label_widget, time_widget)
+        self._drag_pos = QPoint()
+        self._dragging = False
+        self._locked = True  # click-through on by default
 
         self._build_shell()
         self.refresh_clocks()
@@ -265,6 +268,39 @@ class FloatingClock(QWidget):
         self.setWindowOpacity(value)
         self._settings.float_opacity = value
         self._settings.save()
+
+    def set_locked(self, locked: bool):
+        """Toggle click-through (locked=True) vs draggable (locked=False)."""
+        self._locked = locked
+        flags = (
+            Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.Tool
+        )
+        if locked:
+            flags |= Qt.WindowType.WindowTransparentForInput
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        else:
+            self.setCursor(Qt.CursorShape.SizeAllCursor)
+        was_visible = self.isVisible()
+        self.setWindowFlags(flags)
+        # setWindowFlags hides the window; restore visibility
+        if was_visible:
+            self.show()
+
+    # ── Drag to move (only active when unlocked) ──────────────────────────────
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._dragging = True
+            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+
+    def mouseMoveEvent(self, event):
+        if self._dragging and (event.buttons() & Qt.MouseButton.LeftButton):
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
+
+    def mouseReleaseEvent(self, event):
+        self._dragging = False
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
