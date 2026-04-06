@@ -174,8 +174,8 @@ class FloatingClock(QWidget):
         self._body = QWidget()
         self._body.setStyleSheet("background: transparent;")
         self._body_layout = QVBoxLayout(self._body)
-        self._body_layout.setContentsMargins(12, 4, 12, 12)
-        self._body_layout.setSpacing(6)
+        self._body_layout.setContentsMargins(16, 6, 16, 14)
+        self._body_layout.setSpacing(10)
 
         outer.addWidget(title_bar)
         outer.addWidget(self._body)
@@ -217,13 +217,13 @@ class FloatingClock(QWidget):
 
             lbl = QLabel(entry["label"])
             lbl.setStyleSheet(
-                "color: #8b949e; font-size: 12px; font-family: 'Segoe UI','Ubuntu',sans-serif;"
+                "color: #8b949e; font-size: 16px; font-family: 'Segoe UI','Ubuntu',sans-serif;"
             )
-            lbl.setFixedWidth(100)
+            lbl.setFixedWidth(130)
 
             tim = QLabel("--:--")
             tim.setStyleSheet(
-                "color: #e6edf3; font-size: 14px; font-weight: bold;"
+                "color: #e6edf3; font-size: 22px; font-weight: bold;"
                 "font-family: 'Consolas','Ubuntu Mono','DejaVu Sans Mono',monospace;"
             )
             tim.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
