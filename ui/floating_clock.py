@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QSlider, QMenu, QDialog, QPushButton, QApplication, QFrame
+    QSlider, QDialog, QPushButton, QApplication
 )
-from PySide6.QtCore import Qt, QTimer, QDateTime, QTimeZone, QPoint, Signal
+from PySide6.QtCore import Qt, QTimer, QDateTime, QTimeZone, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QBrush, QFont
 
 from app.persistence import load_clocks
@@ -109,14 +109,13 @@ class FloatingClock(QWidget):
             parent,
             Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.Tool,          # no taskbar entry
+            | Qt.WindowType.Tool                    # no taskbar entry
+            | Qt.WindowType.WindowTransparentForInput,  # click-through
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
 
         self._settings = AppSettings.load()
-        self._drag_pos = QPoint()
-        self._dragging = False
         self._clocks: list[dict] = []
         self._tzones: list[QTimeZone] = []
         self._rows: list[tuple[QLabel, QLabel]] = []  # (label_widget, time_widget)
@@ -262,56 +261,7 @@ class FloatingClock(QWidget):
         painter.setPen(QPen(QColor(48, 54, 61), 1))            # #30363d border
         painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 10, 10)
 
-    # ── Drag to move ──────────────────────────────────────────────────────────
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._dragging = True
-            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-        elif event.button() == Qt.MouseButton.RightButton:
-            self._show_context_menu(event.globalPosition().toPoint())
-
-    def mouseMoveEvent(self, event):
-        if self._dragging and (event.buttons() & Qt.MouseButton.LeftButton):
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-
-    def mouseReleaseEvent(self, event):
-        self._dragging = False
-
-    # ── Context menu ──────────────────────────────────────────────────────────
-
-    def _show_context_menu(self, pos: QPoint):
-        menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background: #161b22;
-                border: 1px solid #30363d;
-                border-radius: 6px;
-                padding: 4px;
-            }
-            QMenu::item { color: #e6edf3; padding: 6px 18px; border-radius: 4px; font-size: 12px; }
-            QMenu::item:selected { background: #21262d; }
-            QMenu::separator { height: 1px; background: #30363d; margin: 4px 8px; }
-        """)
-        opacity_action = menu.addAction("◑  Adjust Transparency…")
-        menu.addSeparator()
-        close_action = menu.addAction("✕  Close Floating Clock")
-
-        action = menu.exec(pos)
-        if action == opacity_action:
-            self._open_opacity_dialog()
-        elif action == close_action:
-            self.hide()
-
-    def _open_opacity_dialog(self):
-        dlg = _OpacityDialog(self.windowOpacity(), self)
-        dlg.opacity_changed.connect(self._set_opacity)
-        # position near the floating clock
-        dlg.move(self.x(), self.y() + self.height() + 4)
-        dlg.show()
-        dlg.raise_()
-
-    def _set_opacity(self, value: float):
+    def set_opacity(self, value: float):
         self.setWindowOpacity(value)
         self._settings.float_opacity = value
         self._settings.save()

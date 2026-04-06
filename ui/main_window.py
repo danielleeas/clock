@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QScrollArea, QLabel, QMessageBox,
-    QSizePolicy, QFrame
+    QSizePolicy, QFrame, QSlider, QDialog
 )
 from PySide6.QtCore import Qt, QTimer, QTimeZone
 from PySide6.QtGui import QKeySequence, QShortcut
@@ -57,11 +57,14 @@ class MainWindow(QMainWindow):
         self._btn_secs = self._tool_btn("Seconds", checkable=True, tooltip="Show/hide seconds")
         self._btn_view = self._tool_btn("List", checkable=True, tooltip="Toggle list / grid view")
         self._btn_float = self._tool_btn("Float", checkable=True, tooltip="Show/hide floating clock overlay")
+        self._btn_float_opacity = self._tool_btn("◑", tooltip="Adjust floating clock transparency")
+        self._btn_float_opacity.setVisible(False)
 
         self._btn_24h.clicked.connect(self._toggle_24h)
         self._btn_secs.clicked.connect(self._toggle_seconds)
         self._btn_view.clicked.connect(self._toggle_view)
         self._btn_float.clicked.connect(self._toggle_float)
+        self._btn_float_opacity.clicked.connect(self._open_float_opacity)
 
         add_btn = QPushButton("＋  Add Clock")
         add_btn.setObjectName("AddBtn")
@@ -74,6 +77,7 @@ class MainWindow(QMainWindow):
         tb.addWidget(self._btn_secs)
         tb.addWidget(self._btn_view)
         tb.addWidget(self._btn_float)
+        tb.addWidget(self._btn_float_opacity)
         tb.addSpacing(8)
         tb.addWidget(add_btn)
 
@@ -169,6 +173,54 @@ class MainWindow(QMainWindow):
             self._float_clock.show()
         else:
             self._float_clock.hide()
+        self._btn_float_opacity.setVisible(checked)
+
+    def _open_float_opacity(self):
+        """Open a small opacity slider dialog for the floating clock."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Float Opacity")
+        dlg.setFixedWidth(280)
+        dlg.setStyleSheet("""
+            QDialog { background: #161b22; }
+            QLabel { color: #e6edf3; font-size: 12px; }
+            QSlider::groove:horizontal { height: 4px; background: #30363d; border-radius: 2px; }
+            QSlider::handle:horizontal { width: 14px; height: 14px; margin: -5px 0;
+                background: #58a6ff; border-radius: 7px; }
+            QSlider::sub-page:horizontal { background: #58a6ff; border-radius: 2px; }
+            QPushButton { background: #21262d; color: #e6edf3; border: 1px solid #30363d;
+                border-radius: 4px; padding: 4px 14px; font-size: 12px; }
+            QPushButton:hover { background: #30363d; }
+        """)
+        vbox = QVBoxLayout(dlg)
+        vbox.setContentsMargins(16, 14, 16, 14)
+        vbox.setSpacing(10)
+
+        pct = QLabel(f"{int(self._float_clock.windowOpacity() * 100)}%")
+        pct.setStyleSheet("color: #58a6ff; font-size: 12px;")
+
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setRange(20, 100)
+        slider.setValue(int(self._float_clock.windowOpacity() * 100))
+
+        def on_change(v):
+            pct.setText(f"{v}%")
+            self._float_clock.set_opacity(v / 100.0)
+
+        slider.valueChanged.connect(on_change)
+
+        row = QHBoxLayout()
+        row.addWidget(QLabel("20%"))
+        row.addWidget(slider, 1)
+        row.addWidget(QLabel("100%"))
+
+        done = QPushButton("Done")
+        done.clicked.connect(dlg.accept)
+
+        vbox.addWidget(QLabel("Floating clock transparency:"))
+        vbox.addLayout(row)
+        vbox.addWidget(pct)
+        vbox.addWidget(done)
+        dlg.exec()
 
     # ── Add clock ─────────────────────────────────────────────────────────────
 
